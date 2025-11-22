@@ -2,7 +2,7 @@
 
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import React from 'react';
-import { DrawerContext, useDrawerContext } from './context';
+import { DrawerContext, useDrawerContext, DrawerConfigContext, useDrawerConfig } from './context';
 import './style.css';
 import { usePreventScroll, isInput } from './use-prevent-scroll';
 import { useComposedRefs } from './use-composed-refs';
@@ -136,6 +136,29 @@ export type DialogProps = {
   autoFocus?: boolean;
 } & (WithFadeFromProps | WithoutFadeFromProps);
 
+export function ConfigProvider({
+  children,
+  container,
+  containerId,
+}: {
+  children: React.ReactNode;
+  container?: HTMLElement | null;
+  containerId?: string;
+}) {
+  const [resolvedContainer, setResolvedContainer] = React.useState<HTMLElement | null>(container || null);
+
+  React.useEffect(() => {
+    if (container) {
+      setResolvedContainer(container);
+    } else if (containerId) {
+      const el = document.getElementById(containerId);
+      setResolvedContainer(el);
+    }
+  }, [container, containerId]);
+
+  return <DrawerConfigContext.Provider value={{ container: resolvedContainer }}>{children}</DrawerConfigContext.Provider>;
+}
+
 export function Root({
   open: openProp,
   onOpenChange,
@@ -164,9 +187,11 @@ export function Root({
   preventScrollRestoration = false,
   repositionInputs = true,
   onAnimationEnd,
-  container,
+  container: containerProp,
   autoFocus = false,
 }: DialogProps) {
+  const config = useDrawerConfig();
+  const container = containerProp || config?.container;
   const [isOpen = false, setIsOpen] = useControllableState({
     defaultProp: defaultOpen,
     prop: openProp,
@@ -184,14 +209,14 @@ export function Root({
       if (o && !modal) {
         if (typeof window !== 'undefined') {
           window.requestAnimationFrame(() => {
-            document.body.style.pointerEvents = 'auto';
+            (container || document.body).style.pointerEvents = 'auto';
           });
         }
       }
 
       if (!o) {
         // This will be removed when the exit animation ends (`500ms`)
-        document.body.style.pointerEvents = 'auto';
+        (container || document.body).style.pointerEvents = 'auto';
       }
     },
   });
@@ -244,6 +269,7 @@ export function Root({
   usePreventScroll({
     isDisabled:
       !isOpen || isDragging || !modal || justReleased || !hasBeenOpened || !repositionInputs || !disablePreventScroll,
+    container,
   });
 
   const { restorePositionSetting } = usePositionFixed({
@@ -253,6 +279,7 @@ export function Root({
     hasBeenOpened,
     preventScrollRestoration,
     noBodyStyles,
+    container,
   });
 
   function getScale() {
@@ -374,7 +401,7 @@ export function Root({
 
       // We need to capture last time when drag with scroll was triggered and have a timeout between
       const absDraggedDistance = Math.abs(draggedDistance);
-      const wrapper = document.querySelector('[data-vaul-drawer-wrapper]');
+      const wrapper = (container || document).querySelector('[data-vaul-drawer-wrapper]');
       const drawerDimension =
         direction === 'bottom' || direction === 'top' ? drawerHeightRef.current : drawerWidthRef.current;
 
@@ -550,7 +577,7 @@ export function Root({
 
   function resetDrawer() {
     if (!drawerRef.current) return;
-    const wrapper = document.querySelector('[data-vaul-drawer-wrapper]');
+    const wrapper = (container || document).querySelector('[data-vaul-drawer-wrapper]');
     const currentSwipeAmount = getTranslate(drawerRef.current, direction);
 
     set(drawerRef.current, {
@@ -572,13 +599,13 @@ export function Root({
           overflow: 'hidden',
           ...(isVertical(direction)
             ? {
-                transform: `scale(${getScale()}) translate3d(0, calc(env(safe-area-inset-top) + 14px), 0)`,
-                transformOrigin: 'top',
-              }
+              transform: `scale(${getScale()}) translate3d(0, calc(env(safe-area-inset-top) + 14px), 0)`,
+              transformOrigin: 'top',
+            }
             : {
-                transform: `scale(${getScale()}) translate3d(calc(env(safe-area-inset-top) + 14px), 0, 0)`,
-                transformOrigin: 'left',
-              }),
+              transform: `scale(${getScale()}) translate3d(calc(env(safe-area-inset-top) + 14px), 0, 0)`,
+              transformOrigin: 'left',
+            }),
           transitionProperty: 'transform, border-radius',
           transitionDuration: `${TRANSITIONS.DURATION}s`,
           transitionTimingFunction: `cubic-bezier(${TRANSITIONS.EASE.join(',')})`,
@@ -740,7 +767,7 @@ export function Root({
     if (!modal) {
       // Need to do this manually unfortunately
       window.requestAnimationFrame(() => {
-        document.body.style.pointerEvents = 'auto';
+        (container || document.body).style.pointerEvents = 'auto';
       });
     }
   }, [modal]);
@@ -911,9 +938,9 @@ export const Content = React.forwardRef<HTMLDivElement, ContentProps>(function (
       style={
         snapPointsOffset && snapPointsOffset.length > 0
           ? ({
-              '--snap-point-height': `${snapPointsOffset[activeSnapPointIndex ?? 0]!}px`,
-              ...style,
-            } as React.CSSProperties)
+            '--snap-point-height': `${snapPointsOffset[activeSnapPointIndex ?? 0]!}px`,
+            ...style,
+          } as React.CSSProperties)
           : style
       }
       onPointerDown={(event) => {
@@ -1145,4 +1172,5 @@ export const Drawer = {
   Close: DialogPrimitive.Close,
   Title: DialogPrimitive.Title,
   Description: DialogPrimitive.Description,
+  ConfigProvider,
 };

@@ -37,12 +37,12 @@ interface DrawerContextValue {
 export const DrawerContext = React.createContext<DrawerContextValue>({
   drawerRef: { current: null },
   overlayRef: { current: null },
-  onPress: () => {},
-  onRelease: () => {},
-  onDrag: () => {},
-  onNestedDrag: () => {},
-  onNestedOpenChange: () => {},
-  onNestedRelease: () => {},
+  onPress: () => { },
+  onRelease: () => { },
+  onDrag: () => { },
+  onNestedDrag: () => { },
+  onNestedOpenChange: () => { },
+  onNestedRelease: () => { },
   openProp: undefined,
   dismissible: false,
   isOpen: false,
@@ -54,9 +54,9 @@ export const DrawerContext = React.createContext<DrawerContextValue>({
   modal: false,
   shouldFade: false,
   activeSnapPoint: null,
-  onOpenChange: () => {},
-  setActiveSnapPoint: () => {},
-  closeDrawer: () => {},
+  onOpenChange: () => { },
+  setActiveSnapPoint: () => { },
+  closeDrawer: () => { },
   direction: 'bottom',
   shouldAnimate: { current: true },
   shouldScaleBackground: false,
@@ -72,4 +72,14 @@ export const useDrawerContext = () => {
     throw new Error('useDrawerContext must be used within a Drawer.Root');
   }
   return context;
+};
+
+interface DrawerConfigContextValue {
+  container?: HTMLElement | null;
+}
+
+export const DrawerConfigContext = React.createContext<DrawerConfigContextValue | undefined>(undefined);
+
+export const useDrawerConfig = () => {
+  return React.useContext(DrawerConfigContext);
 };

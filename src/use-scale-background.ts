@@ -3,10 +3,10 @@ import { useDrawerContext } from './context';
 import { assignStyle, chain, isVertical, reset } from './helpers';
 import { BORDER_RADIUS, TRANSITIONS, WINDOW_TOP_OFFSET } from './constants';
 
-const noop = () => () => {};
+const noop = () => () => { };
 
 export function useScaleBackground() {
-  const { direction, isOpen, shouldScaleBackground, setBackgroundColorOnScale, noBodyStyles } = useDrawerContext();
+  const { direction, isOpen, shouldScaleBackground, setBackgroundColorOnScale, noBodyStyles, container } = useDrawerContext();
   const timeoutIdRef = React.useRef<number | null>(null);
   const initialBackgroundColor = useMemo(() => document.body.style.backgroundColor, []);
 
@@ -18,8 +18,8 @@ export function useScaleBackground() {
     if (isOpen && shouldScaleBackground) {
       if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
       const wrapper =
-        (document.querySelector('[data-vaul-drawer-wrapper]') as HTMLElement) ||
-        (document.querySelector('[vaul-drawer-wrapper]') as HTMLElement);
+        ((container || document).querySelector('[data-vaul-drawer-wrapper]') as HTMLElement) ||
+        ((container || document).querySelector('[vaul-drawer-wrapper]') as HTMLElement);
 
       if (!wrapper) return;
 
@@ -38,11 +38,11 @@ export function useScaleBackground() {
         overflow: 'hidden',
         ...(isVertical(direction)
           ? {
-              transform: `scale(${getScale()}) translate3d(0, calc(env(safe-area-inset-top) + 14px), 0)`,
-            }
+            transform: `scale(${getScale()}) translate3d(0, calc(env(safe-area-inset-top) + 14px), 0)`,
+          }
           : {
-              transform: `scale(${getScale()}) translate3d(calc(env(safe-area-inset-top) + 14px), 0, 0)`,
-            }),
+            transform: `scale(${getScale()}) translate3d(calc(env(safe-area-inset-top) + 14px), 0, 0)`,
+          }),
       });
 
       return () => {

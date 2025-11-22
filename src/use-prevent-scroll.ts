@@ -11,6 +11,7 @@ interface PreventScrollOptions {
   /** Whether the scroll lock is disabled. */
   isDisabled?: boolean;
   focusCallback?: () => void;
+  container?: HTMLElement | null;
 }
 
 function chain(...callbacks: any[]): (...args: any[]) => void {
@@ -66,7 +67,7 @@ let restore: () => void;
  * shift due to the scrollbars disappearing.
  */
 export function usePreventScroll(options: PreventScrollOptions = {}) {
-  let { isDisabled } = options;
+  let { isDisabled, container } = options;
 
   useIsomorphicLayoutEffect(() => {
     if (isDisabled) {
@@ -76,7 +77,7 @@ export function usePreventScroll(options: PreventScrollOptions = {}) {
     preventScrollCount++;
     if (preventScrollCount === 1) {
       if (isIOS()) {
-        restore = preventScrollMobileSafari();
+        restore = preventScrollMobileSafari(container);
       }
     }
 
@@ -86,7 +87,7 @@ export function usePreventScroll(options: PreventScrollOptions = {}) {
         restore?.();
       }
     };
-  }, [isDisabled]);
+  }, [isDisabled, container]);
 }
 
 // Mobile Safari is a whole different beast. Even with overflow: hidden,
@@ -115,7 +116,7 @@ export function usePreventScroll(options: PreventScrollOptions = {}) {
 //    above work or Safari will still try to scroll the page when focusing an input.
 // 6. As a last resort, handle window scroll events, and scroll back to the top. This can happen when attempting
 //    to navigate to an input with the next/previous buttons that's outside a modal.
-function preventScrollMobileSafari() {
+function preventScrollMobileSafari(container?: HTMLElement | null) {
   let scrollable: Element;
   let lastY = 0;
   let onTouchStart = (e: TouchEvent) => {
@@ -215,7 +216,11 @@ function preventScrollMobileSafari() {
   let scrollY = window.pageYOffset;
 
   let restoreStyles = chain(
-    setStyle(document.documentElement, 'paddingRight', `${window.innerWidth - document.documentElement.clientWidth}px`),
+    setStyle(
+      container || document.documentElement,
+      'paddingRight',
+      `${window.innerWidth - document.documentElement.clientWidth}px`,
+    ),
     // setStyle(document.documentElement, 'overflow', 'hidden'),
     // setStyle(document.body, 'marginTop', `-${scrollY}px`),
   );

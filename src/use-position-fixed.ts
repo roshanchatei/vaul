@@ -19,6 +19,7 @@ export function usePositionFixed({
   hasBeenOpened,
   preventScrollRestoration,
   noBodyStyles,
+  container,
 }: {
   isOpen: boolean;
   modal: boolean;
@@ -26,6 +27,7 @@ export function usePositionFixed({
   hasBeenOpened: boolean;
   preventScrollRestoration: boolean;
   noBodyStyles: boolean;
+  container?: HTMLElement | null;
 }) {
   const [activeUrl, setActiveUrl] = React.useState(() => (typeof window !== 'undefined' ? window.location.href : ''));
   const scrollPos = React.useRef(0);
@@ -34,21 +36,23 @@ export function usePositionFixed({
     // All browsers on iOS will return true here.
     if (!isSafari()) return;
 
+    const target = container || document.body;
+
     // If previousBodyPosition is already set, don't set it again.
     if (previousBodyPosition === null && isOpen && !noBodyStyles) {
       previousBodyPosition = {
-        position: document.body.style.position,
-        top: document.body.style.top,
-        left: document.body.style.left,
-        height: document.body.style.height,
+        position: target.style.position,
+        top: target.style.top,
+        left: target.style.left,
+        height: target.style.height,
         right: 'unset',
       };
 
       // Update the dom inside an animation frame
       const { scrollX, innerHeight } = window;
 
-      document.body.style.setProperty('position', 'fixed', 'important');
-      Object.assign(document.body.style, {
+      target.style.setProperty('position', 'fixed', 'important');
+      Object.assign(target.style, {
         top: `${-scrollPos.current}px`,
         left: `${-scrollX}px`,
         right: '0px',
@@ -62,25 +66,27 @@ export function usePositionFixed({
             const bottomBarHeight = innerHeight - window.innerHeight;
             if (bottomBarHeight && scrollPos.current >= innerHeight) {
               // Move the content further up so that the bottom bar doesn't hide it
-              document.body.style.top = `${-(scrollPos.current + bottomBarHeight)}px`;
+              target.style.top = `${-(scrollPos.current + bottomBarHeight)}px`;
             }
           }),
         300,
       );
     }
-  }, [isOpen]);
+  }, [isOpen, container]);
 
   const restorePositionSetting = React.useCallback(() => {
     // All browsers on iOS will return true here.
     if (!isSafari()) return;
 
+    const target = container || document.body;
+
     if (previousBodyPosition !== null && !noBodyStyles) {
       // Convert the position from "px" to Int
-      const y = -parseInt(document.body.style.top, 10);
-      const x = -parseInt(document.body.style.left, 10);
+      const y = -parseInt(target.style.top, 10);
+      const x = -parseInt(target.style.left, 10);
 
       // Restore styles
-      Object.assign(document.body.style, previousBodyPosition);
+      Object.assign(target.style, previousBodyPosition);
 
       window.requestAnimationFrame(() => {
         if (preventScrollRestoration && activeUrl !== window.location.href) {
@@ -93,7 +99,7 @@ export function usePositionFixed({
 
       previousBodyPosition = null;
     }
-  }, [activeUrl]);
+  }, [activeUrl, container]);
 
   React.useEffect(() => {
     function onScroll() {
@@ -116,12 +122,12 @@ export function usePositionFixed({
       if (typeof document === 'undefined') return;
 
       // Another drawer is opened, safe to ignore the execution
-      const hasDrawerOpened = !!document.querySelector('[data-vaul-drawer]');
+      const hasDrawerOpened = !!(container || document).querySelector('[data-vaul-drawer]');
       if (hasDrawerOpened) return;
 
       restorePositionSetting();
     };
-  }, [modal, restorePositionSetting]);
+  }, [modal, restorePositionSetting, container]);
 
   React.useEffect(() => {
     if (nested || !hasBeenOpened) return;
