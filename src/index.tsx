@@ -1173,4 +1173,5 @@ export const Drawer = {
   Title: DialogPrimitive.Title,
   Description: DialogPrimitive.Description,
   ConfigProvider,
+  Provider: ConfigProvider,
 };
